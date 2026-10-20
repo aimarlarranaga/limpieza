@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tablero de limpieza</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: una columna de tarjetas en el móvil; tres columnas en escritorio. */
+:root {
+  --bg: #f2f5f1;
+  --surface: #ffffff;
+  --ink: #18231f;
+  --muted: #5b6a63;
+  --line: #dde4de;
+  --accent: #1c6b5c;
+  --accent-soft: #dcefe9;
+  --done: #2e8b57;
+  --done-soft: #e3f3ea;
+  --warn: #8a5a00;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1714;
+    --surface: #17211d;
+    --ink: #e7efea;
+    --muted: #9aaba3;
+    --line: #2a3a33;
+    --accent: #6fd0b8;
+    --accent-soft: #1d3a33;
+    --done: #6fd39a;
+    --done-soft: #1c3a2a;
+    --warn: #e8c070;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1714;
+  --surface: #17211d;
+  --ink: #e7efea;
+  --muted: #9aaba3;
+  --line: #2a3a33;
+  --accent: #6fd0b8;
+  --accent-soft: #1d3a33;
+  --done: #6fd39a;
+  --done-soft: #1c3a2a;
+  --warn: #e8c070;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; min-width: 0; }
+
+header.top { margin-bottom: 20px; }
+.eyebrow {
+  margin: 0 0 6px;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+h1 { margin: 0 0 6px; font-size: 28px; font-weight: 700; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 56ch; }
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.people label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.people input {
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  min-width: 0;
+  width: 100%;
+}
+.people input:focus-visible,
+.items input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 760px) {
+  .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.card h2 { margin: 0; font-size: 18px; font-weight: 700; text-wrap: balance; }
+.who { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.who strong { color: var(--ink); font-weight: 500; }
+.count {
+  flex: none;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+.card.complete .bar > span { background: var(--done); }
+.card.complete .count { color: var(--done); background: var(--done-soft); }
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.items li { min-width: 0; }
+.items label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+.items label:hover { background: var(--accent-soft); }
+.items input[type="checkbox"] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.items span { min-width: 0; overflow-wrap: anywhere; }
+.items input:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted); }
+
+.next {
+  margin-top: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.next h2 { margin: 0 0 10px; font-size: 15px; font-weight: 700; }
+.next ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.next li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 14px;
+  min-width: 0;
+}
+.next li strong { color: var(--ink); font-weight: 500; }
+
+.status { margin: 18px 0 0; font-size: 12px; color: var(--muted); }
+.status.offline { color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar > span { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <p class="eyebrow" id="week"></p>
+    <h1>Tablero de limpieza</h1>
+    <p class="lede">Tres tareas a fondo cada semana. Cada lunes cada una pasa a otra persona.</p>
+  </header>
+
+  <section class="people" aria-label="Compañeros de piso">
+    <label>Persona 1<input id="p0" autocomplete="off"></label>
+    <label>Persona 2<input id="p1" autocomplete="off"></label>
+    <label>Persona 3<input id="p2" autocomplete="off"></label>
+  </section>
+
+  <div class="board" id="board"></div>
+
+  <section class="next">
+    <h2>Semana que viene</h2>
+    <ul id="next"></ul>
+  </section>
+
+  <p class="status" id="status">Cargando…</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://jprgjikpoxpjfrxzefbb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcmdqaWtwb3hwamZyeHplZmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODMzODcsImV4cCI6MjEwODA1OTM4N30.X2I7XV4wOdnzdJEL57vsuiD7VcPwyqeGiiPFMm0sFAc";
+
+const TASKS = [
+  {
+    name: "Cocina a fondo",
+    items: [
+      "Vitrocerámica y campana extractora",
+      "Horno y microondas por dentro",
+      "Nevera: tirar caducados y limpiar baldas",
+      "Fregadero, grifo y encimera",
+      "Suelo y salpicaduras de la zona de cocción"
+    ]
+  },
+  {
+    name: "Baño a fondo",
+    items: [
+      "Inodoro y bidé por dentro y por fuera",
+      "Ducha o bañera, mampara y desagües",
+      "Lavabo, grifo y espejo",
+      "Azulejos y juntas",
+      "Suelo, alfombrilla y papelera"
+    ]
+  },
+  {
+    name: "Espacios comunes: pasillo",
+    items: [
+      "Barrer el polvo, los pelos y la suciedad del suelo",
+      "Si hace falta, pasar el trapo con producto para madera montado en la escoba"
+    ]
+  }
+];
+
+const REF_MONDAY = new Date(2026, 0, 5); // lunes de referencia para contar semanas
+const WEEK_MS = 7 * 864e5;
+const DEFAULT_NAMES = ["Aimar", "Ibon", "Asier"];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+
+const now = new Date();
+const dayIndex = (now.getDay() + 6) % 7; // lunes = 0
+const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayIndex);
+const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+const weekNum = Math.round((monday - REF_MONDAY) / WEEK_MS);
+const weekKey = monday.getFullYear() + "-" + pad(monday.getMonth() + 1) + "-" + pad(monday.getDate());
+
+// Persona asignada a cada tarea en una semana: rota una posición por semana.
+const personFor = (taskIndex, week) => ((taskIndex + week) % 3 + 3) % 3;
+const checkId = (ti, ii) => weekKey + "_" + ti + "-" + ii;
+
+const state = { names: [...DEFAULT_NAMES], checks: {} };
+const nameInputs = [0, 1, 2].map(i => document.getElementById("p" + i));
+nameInputs.forEach((el, i) => { el.value = state.names[i]; });
+
+function setStatus(text, offline) {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.classList.toggle("offline", !!offline);
+}
+
+function render() {
+  const fmtDay = d => d.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+  document.getElementById("week").textContent =
+    "Semana del " + fmtDay(monday) + " al " + fmtDay(sunday);
+
+  document.getElementById("board").innerHTML = TASKS.map((task, ti) => {
+    const who = state.names[personFor(ti, weekNum)];
+    const done = task.items.filter((_, ii) => state.checks[checkId(ti, ii)]).length;
+    const pct = Math.round(done / task.items.length * 100);
+    const complete = done === task.items.length ? " complete" : "";
+    const items = task.items.map((label, ii) => `
+      <li><label>
+        <input type="checkbox" data-t="${ti}" data-i="${ii}" ${state.checks[checkId(ti, ii)] ? "checked" : ""}>
+        <span>${esc(label)}</span>
+      </label></li>`).join("");
+    return `
+      <article class="card${complete}">
+        <div class="card-head">
+          <div>
+            <h2>${esc(task.name)}</h2>
+            <p class="who">Lo hace <strong>${esc(who)}</strong></p>
+          </div>
+          <span class="count">${done}/${task.items.length}</span>
+        </div>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progreso de ${esc(task.name)}">
+          <span style="width:${pct}%"></span>
+        </div>
+        <ul class="items">${items}</ul>
+      </article>`;
+  }).join("");
+
+  document.getElementById("next").innerHTML = TASKS.map((task, ti) =>
+    `<li><span>${esc(task.name)}</span><strong>${esc(state.names[personFor(ti, weekNum + 1)])}</strong></li>`
+  ).join("");
+}
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadAll() {
+  const [checks, config] = await Promise.all([
+    sb.from("checks").select("id, done").eq("week", weekKey),
+    sb.from("config").select("nombres").eq("id", "nombres").maybeSingle()
+  ]);
+  if (checks.error || config.error) {
+    setStatus("No se pueden cargar los datos ahora mismo. Revisa la conexión y recarga la página.", true);
+    return;
+  }
+  const next = {};
+  checks.data.forEach(r => { next[r.id] = !!r.done; });
+  state.checks = next;
+  if (config.data && Array.isArray(config.data.nombres)) {
+    state.names = DEFAULT_NAMES.map((d, i) => config.data.nombres[i] || d);
+  }
+  nameInputs.forEach((el, i) => { if (document.activeElement !== el) el.value = state.names[i]; });
+  render();
+  setStatus("Datos compartidos: los cambios de tus compañeros aparecen al momento.", false);
+}
+
+nameInputs.forEach((el, i) => el.addEventListener("change", async () => {
+  state.names[i] = el.value.trim() || DEFAULT_NAMES[i];
+  render();
+  const { error } = await sb.from("config").upsert({ id: "nombres", nombres: state.names, updated_at: new Date().toISOString() });
+  if (error) setStatus("No se pudo guardar el nombre. Vuelve a intentarlo.", true);
+}));
+
+document.getElementById("board").addEventListener("change", async e => {
+  const el = e.target;
+  if (!el.matches('input[type="checkbox"]')) return;
+  const id = checkId(+el.dataset.t, +el.dataset.i);
+  state.checks[id] = el.checked;
+  render();
+  const { error } = await sb.from("checks").upsert({ id, week: weekKey, done: el.checked, updated_at: new Date().toISOString() });
+  if (error) setStatus("No se pudo guardar esa casilla. Vuelve a intentarlo.", true);
+});
+
+// Cambios en vivo de los demás
+sb.channel("tablero")
+  .on("postgres_changes", { event: "*", schema: "public", table: "checks" }, payload => {
+    const row = payload.new;
+    if (row && row.week === weekKey) { state.checks[row.id] = !!row.done; render(); }
+  })
+  .on("postgres_changes", { event: "*", schema: "public", table: "config" }, payload => {
+    const row = payload.new;
+    if (row && Array.isArray(row.nombres)) {
+      state.names = DEFAULT_NAMES.map((d, i) => row.nombres[i] || d);
+      nameInputs.forEach((el, i) => { if (document.activeElement !== el) el.value = state.names[i]; });
+      render();
+    }
+  })
+  .subscribe();
+
+// Por si el móvil estuvo en segundo plano: recargar al volver
+document.addEventListener("visibilitychange", () => { if (!document.hidden) loadAll(); });
+
+render();
+loadAll();
+</script>
+</body>
+</html>
